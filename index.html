@@ -1,16 +1,32 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VitalFlux Health</title>
+
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/react-grid-layout/1.4.4/css/styles.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/react-resizable/3.0.5/css/styles.css" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- 3rd-party styles used by widgets/layout -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/react-grid-layout/1.4.4/css/styles.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/react-resizable/3.0.5/css/styles.css"
+    />
+
+    <!-- Tailwind config for runtime theming via CSS vars -->
     <script>
       tailwind.config = {
         darkMode: 'class',
@@ -20,39 +36,28 @@
               sans: ['Roboto', 'sans-serif'],
             },
             colors: {
-              'primary': {
-                '50': 'var(--color-primary-50, #eff6ff)',
-                '100': 'var(--color-primary-100, #dbeafe)',
-                '200': 'var(--color-primary-200, #bfdbfe)',
-                '300': 'var(--color-primary-300, #93c5fd)',
-                '400': 'var(--color-primary-400, #60a5fa)',
-                '500': 'var(--color-primary-500, #3b82f6)',
-                '600': 'var(--color-primary-600, #2563eb)',
-                '700': 'var(--color-primary-700, #1d4ed8)',
-                '800': 'var(--color-primary-800, #1e40af)',
-                '900': 'var(--color-primary-900, #1e3a8a)',
-                '950': 'var(--color-primary-950, #172554)'
+              primary: {
+                50: 'var(--color-primary-50, #eff6ff)',
+                100: 'var(--color-primary-100, #dbeafe)',
+                200: 'var(--color-primary-200, #bfdbfe)',
+                300: 'var(--color-primary-300, #93c5fd)',
+                400: 'var(--color-primary-400, #60a5fa)',
+                500: 'var(--color-primary-500, #3b82f6)',
+                600: 'var(--color-primary-600, #2563eb)',
+                700: 'var(--color-primary-700, #1d4ed8)',
+                800: 'var(--color-primary-800, #1e40af)',
+                900: 'var(--color-primary-900, #1e3a8a)',
+                950: 'var(--color-primary-950, #172554)',
               },
-            }
-          }
-        }
-      }
+            },
+          },
+        },
+      };
     </script>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
-    "react/": "https://aistudiocdn.com/react@^19.1.1/",
-    "react": "https://aistudiocdn.com/react@^19.1.1",
-    "recharts": "https://aistudiocdn.com/recharts@^3.2.1",
-    "@phosphor-icons/react": "https://aistudiocdn.com/@phosphor-icons/react@^2.1.10",
-    "react-grid-layout": "https://esm.sh/react-grid-layout@1.4.4"
-  }
-}
-</script>
-</head>
+  </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
-</html>
+    <!-- Vite entry MUST point to /src/main.tsx -->
+    <script type="module" src="/src/main.tsx"></script>
+  </bo
+
