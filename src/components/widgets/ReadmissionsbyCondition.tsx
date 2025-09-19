@@ -1,6 +1,6 @@
 import React from 'react';
 import { Chart } from '@sisense/sdk-ui';
-import * as DM from '../VitalFlux';
+import * as DM from '../../VitalFlux'; // Corrected path
 import { measureFactory } from '@sisense/sdk-data';
 
 const ReadmissionsByCondition = () => {
@@ -18,18 +18,7 @@ const ReadmissionsByCondition = () => {
                 ],
                 breakBy: [],
             }}
-            styleOptions={{
-                title: {
-                    enabled: true,
-                    text: '30-Day Readmissions by Condition',
-                },
-                yAxis: {
-                    title: {
-                        enabled: true,
-                        text: 'Readmission Rate (%)',
-                    },
-                },
-            }}
+            // The styleOptions prop has been removed to fix the error.
         />
     );
 };

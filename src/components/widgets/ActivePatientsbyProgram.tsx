@@ -1,9 +1,10 @@
+// src/components/widgets/ActivePatientsbyProgram.tsx
 import React from 'react';
 import { Chart } from '@sisense/sdk-ui';
-import * as DM from '../VitalFlux';
+import * as DM from '../../VitalFlux'; // Corrected path
 import { measureFactory } from '@sisense/sdk-data';
 
-const ActivePatientsByProgram = () => {
+const ActivePatientsByProgram: React.FC = () => {
     return (
         <Chart
             dataSet={DM.DataSource}
@@ -13,12 +14,8 @@ const ActivePatientsByProgram = () => {
                 value: [measureFactory.count(DM.vitalflux_patients_csv.patient_id, 'Total Patients')],
                 breakBy: [],
             }}
-            styleOptions={{
-                title: {
-                    enabled: true,
-                    text: 'Active Patients by Program',
-                },
-            }}
+            // The styleOptions prop has been removed to fix the error.
+            // Titles are handled in the view components (e.g., CommandCenter.tsx).
         />
     );
 };

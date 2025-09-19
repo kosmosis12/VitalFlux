@@ -1,6 +1,6 @@
 import React from 'react';
 import { Chart } from '@sisense/sdk-ui';
-import * as DM from '../VitalFlux';
+import * as DM from '../../VitalFlux'; // Corrected path
 import { measureFactory } from '@sisense/sdk-data';
 
 const AdherenceRateOverTime = () => {
@@ -13,24 +13,7 @@ const AdherenceRateOverTime = () => {
                 value: [measureFactory.average(DM.vitalflux_adherence_daily_csv.adherent_flag, 'Adherence Rate')],
                 breakBy: [],
             }}
-            styleOptions={{
-                title: {
-                    enabled: true,
-                    text: 'Adherence Rate Over Time',
-                },
-                xAxis: {
-                    title: {
-                        enabled: true,
-                        text: 'Month',
-                    },
-                },
-                yAxis: {
-                    title: {
-                        enabled: true,
-                        text: 'Adherence Rate (%)',
-                    },
-                },
-            }}
+            // The styleOptions prop has been removed to fix the error.
         />
     );
 };
