@@ -8,6 +8,7 @@ import DevicesAndReliability from './views/DevicesAndReliability';
 import Outcomes from './views/Outcomes';
 import Glossary from './views/Glossary';
 import { View } from './types';
+import Layout from './components/Layout';
 
 const AppContent: React.FC = () => {
   const { view, tenant } = useApp();
@@ -39,11 +40,11 @@ const AppContent: React.FC = () => {
   }, [tenant.theme.primaryColor]);
 
   return (
-    // Dark mode class is toggled on <html> in AppProvider; no need to inject theme string here.
+    // Dark mode class is toggled on <html> in AppProvider.
     <div style={primaryColorStyle} className="font-sans">
-      <main className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-        <div className="container mx-auto px-6 py-8">{renderView()}</div>
-      </main>
+      <Layout>
+        {renderView()}
+      </Layout>
     </div>
   );
 };
