@@ -1,5 +1,6 @@
 // src/App.tsx
 import React, { useMemo } from 'react';
+import { SisenseContextProvider } from '@sisense/sdk-ui';
 import AppProvider, { useApp } from './contexts/AppContests';
 import Home from './views/Home';
 import CommandCenter from './views/CommandCenter';
@@ -50,10 +51,17 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  // This provider passes Sisense connection details down to all chart widgets.
+  // Make sure to replace the placeholder url and token with your credentials.
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <SisenseContextProvider
+      url="https://aesandbox.sisensepoc.com"
+      token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjg2YmUwYmQxYzYzMTJiZmJhMWI0M2I3IiwiYXBpU2VjcmV0IjoiMjQ1NDAwZGUtYjA1My0zOWJkLTUzY2EtODg2MzhmOGZiYzNkIiwiYWxsb3dlZFRlbmFudHMiOlsiNjg2YmRhMjVlYzBmNzYwMDFjZTQxZTI1Il0sInRlbmFudElkIjoiNjg2YmRhMjVlYzBmNzYwMDFjZTQxZTI1IiwiZXhwIjoxNzU4OTgxNTYzfQ.Wg5YII5pYUZNXN8lHC0mkXb3vy-aXRYJNhHWssfjJ-U"
+    >
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </SisenseContextProvider>
   );
 };
 
