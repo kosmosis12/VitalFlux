@@ -1,6 +1,5 @@
 // src/App.tsx
 import React, { useMemo } from 'react';
-import { SisenseContextProvider } from '@sisense/sdk-ui';
 import AppProvider, { useApp } from './contexts/AppContests';
 import Home from './views/Home';
 import CommandCenter from './views/CommandCenter';
@@ -9,7 +8,6 @@ import DevicesAndReliability from './views/DevicesAndReliability';
 import Outcomes from './views/Outcomes';
 import Glossary from './views/Glossary';
 import { View } from './types';
-import Layout from './components/Layout';
 
 const AppContent: React.FC = () => {
   const { view, tenant } = useApp();
@@ -41,27 +39,20 @@ const AppContent: React.FC = () => {
   }, [tenant.theme.primaryColor]);
 
   return (
-    // Dark mode class is toggled on <html> in AppProvider.
+    // Dark mode class is toggled on <html> in AppProvider; no need to inject theme string here.
     <div style={primaryColorStyle} className="font-sans">
-      <Layout>
-        {renderView()}
-      </Layout>
+      <main className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+        <div className="container mx-auto px-6 py-8">{renderView()}</div>
+      </main>
     </div>
   );
 };
 
 const App: React.FC = () => {
-  // This provider passes Sisense connection details down to all chart widgets.
-  // Make sure to replace the placeholder url and token with your credentials.
   return (
-    <SisenseContextProvider
-      url="https://aesandbox.sisensepoc.com"
-      token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjg2YmUwYmQxYzYzMTJiZmJhMWI0M2I3IiwiYXBpU2VjcmV0IjoiMjQ1NDAwZGUtYjA1My0zOWJkLTUzY2EtODg2MzhmOGZiYzNkIiwiYWxsb3dlZFRlbmFudHMiOlsiNjg2YmRhMjVlYzBmNzYwMDFjZTQxZTI1Il0sInRlbmFudElkIjoiNjg2YmRhMjVlYzBmNzYwMDFjZTQxZTI1IiwiZXhwIjoxNzU4OTgxNTYzfQ.Wg5YII5pYUZNXN8lHC0mkXb3vy-aXRYJNhHWssfjJ-U"
-    >
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
-    </SisenseContextProvider>
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
   );
 };
 
