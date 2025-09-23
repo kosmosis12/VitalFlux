@@ -1,3 +1,4 @@
+// src/views/CommandCenter.tsx
 import React, { useState } from 'react';
 import { Plus, X } from '@phosphor-icons/react';
 
@@ -7,10 +8,6 @@ import ActivePatientsByProgram from '../components/widgets/ActivePatientsbyProgr
 import PatientRiskLevelDistribution from '../components/widgets/PatientRiskLevelDistribution';
 import ReadmissionsbyCondition from '../components/widgets/ReadmissionsbyCondition';
 import AverageCostAvoidancePerProgram from '../components/widgets/AverageCostAvoidanceperProgram';
-
-// Import the new AI components
-import GeminiChat from '../components/GeminiChat';
-import DynamicAiWidget from '../components/widgets/DynamicAiWidget';
 
 // Define the widget catalog
 const widgetCatalog = {
@@ -43,7 +40,7 @@ interface WidgetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (widgetKey: WidgetKey) => void;
-  existingWidgets: any[]; // Changed to any to handle titles from both types
+  existingWidgets: WidgetKey[];
 }
 
 const WidgetModal: React.FC<WidgetModalProps> = ({ isOpen, onClose, onSelect, existingWidgets }) => {
@@ -60,7 +57,7 @@ const WidgetModal: React.FC<WidgetModalProps> = ({ isOpen, onClose, onSelect, ex
         </div>
         <div className="space-y-2">
           {Object.entries(widgetCatalog).map(([key, { title }]) => {
-            const isAdded = existingWidgets.some(w => w.title === title);
+            const isAdded = existingWidgets.includes(key as WidgetKey);
             return (
               <button
                 key={key}
@@ -84,26 +81,15 @@ const WidgetModal: React.FC<WidgetModalProps> = ({ isOpen, onClose, onSelect, ex
 
 
 const CommandCenter: React.FC = () => {
-  const [widgets, setWidgets] = useState<any[]>([]);
+  const [widgets, setWidgets] = useState<WidgetKey[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleAddWidget = (widgetKey: WidgetKey) => {
-    if (widgets.length < 4) {
-      setWidgets(prev => [...prev, { ...widgetCatalog[widgetKey], isAi: false }]);
+    if (widgets.length < 4 && !widgets.includes(widgetKey)) {
+      setWidgets(prev => [...prev, widgetKey]);
     }
     setIsModalOpen(false);
   };
-
-  const handleAiNewWidget = (widgetConfig: any) => {
-    if (widgets.length < 4) {
-      setWidgets(prev => [...prev, { ...widgetConfig, isAi: true }]);
-    }
-  };
-  
-  const handleAiError = (errorMessage: string) => {
-      // Optional: Display a toast notification or alert to the user
-      console.error("AI Error:", errorMessage);
-  }
 
   const handleRemoveWidget = (indexToRemove: number) => {
     setWidgets(prev => prev.filter((_, index) => index !== indexToRemove));
@@ -115,7 +101,7 @@ const CommandCenter: React.FC = () => {
        <>
         <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center">
             <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Command Center is Empty</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-2 mb-6">Start building your dashboard by adding a widget or asking the AI.</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 mb-6">Start building your dashboard by adding a widget.</p>
             <button
                 onClick={() => setIsModalOpen(true)}
                 className="bg-primary-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-primary-600 transition-colors flex items-center gap-2"
@@ -130,8 +116,6 @@ const CommandCenter: React.FC = () => {
           onSelect={handleAddWidget}
           existingWidgets={widgets}
         />
-        {/* ADD THIS LINE to render the chat UI in the empty state */}
-        <GeminiChat onNewWidget={handleAiNewWidget} onError={handleAiError} />
        </>
     );
   }
@@ -140,10 +124,10 @@ const CommandCenter: React.FC = () => {
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {widgets.map((widget, index) => (
-          <div key={`${widget.title}-${index}`} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 h-96 flex flex-col">
+        {widgets.map((widgetKey, index) => (
+          <div key={`${widgetKey}-${index}`} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 h-96 flex flex-col">
             <div className="flex justify-between items-center mb-2">
-              <h3 className="font-semibold text-lg text-gray-700 dark:text-gray-200">{widget.title}</h3>
+              <h3 className="font-semibold text-lg text-gray-700 dark:text-gray-200">{widgetCatalog[widgetKey].title}</h3>
               <button
                 onClick={() => handleRemoveWidget(index)}
                 className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -152,13 +136,7 @@ const CommandCenter: React.FC = () => {
                  <X size={16} className="text-gray-500 dark:text-gray-400" />
               </button>
             </div>
-            <div className="flex-grow h-full">
-              {widget.isAi ? (
-                <DynamicAiWidget chartType={widget.chartType} dataOptions={widget.dataOptions} />
-              ) : (
-                widget.component
-              )}
-            </div>
+            <div className="flex-grow h-full">{widgetCatalog[widgetKey].component}</div>
           </div>
         ))}
 
@@ -180,8 +158,6 @@ const CommandCenter: React.FC = () => {
         onSelect={handleAddWidget}
         existingWidgets={widgets}
       />
-      {/* ADD THIS LINE to render the chat UI when widgets are present */}
-      <GeminiChat onNewWidget={handleAiNewWidget} onError={handleAiError}/>
     </>
   );
 };
