@@ -18,19 +18,16 @@ declare global {
 
 const DynamicAiWidget: React.FC<DynamicAiWidgetProps> = ({ chartType, dataOptions }) => {
 
-  // Before the component renders, attach DM and measureFactory to the window
   useEffect(() => {
     window.DM = DM;
     window.measureFactory = measureFactory;
 
-    // Clean up the window object when the component unmounts
     return () => {
       delete window.DM;
       delete window.measureFactory;
     };
   }, []);
   
-  // This function now safely evaluates strings, assuming DM and measureFactory are on the window
   const evaluateDataOptions = (options: any) => {
     const evaluatedOptions = { ...options };
 
@@ -46,6 +43,11 @@ const DynamicAiWidget: React.FC<DynamicAiWidgetProps> = ({ chartType, dataOption
 
     return evaluatedOptions;
   };
+  
+  // *** FIX IS HERE: Check if dataOptions are valid before rendering ***
+  if (!dataOptions || !dataOptions.category || !dataOptions.value) {
+    return <div className="p-4 text-gray-500">Generating chart...</div>;
+  }
 
   try {
     const safeDataOptions = evaluateDataOptions(dataOptions);
