@@ -1,15 +1,10 @@
-// AppContests.tsx
+// src/contexts/AppContests.tsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
-
-// ⬅️ Value imports for enums/constants used at runtime
 import { View, Role, Theme } from '../types';
-
-// ⬅️ Type-only imports for pure types
 import type { Tenant, SavedView } from '../types';
 
-// Placeholder TENANTS; replace with your real data when ready
 const TENANTS: Tenant[] = [
-  { name: 'Default Tenant', logo: '', theme: { primaryColor: '#3b82f6' } },
+  { name: 'Default Tenant', logo: '', theme: { primaryColor: '#3b82f6' } }, // Original blue color
 ];
 
 interface AppContextType {
@@ -26,6 +21,9 @@ interface AppContextType {
   savedViews: SavedView[];
   saveCurrentView: (name: string) => void;
   deleteView: (id: string) => void;
+  // **NEW**: Add primaryColor and a function to update it
+  primaryColor: string;
+  setPrimaryColor: (color: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -37,21 +35,20 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(Theme.LIGHT);
   const [tenant, setTenant] = useState<Tenant>(TENANTS[0]);
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  // **NEW**: State for managing the primary color
+  const [primaryColor, setPrimaryColor] = useState<string>(TENANTS[0].theme.primaryColor);
 
-  // toggle dark mode class
   useEffect(() => {
     const root = document.documentElement;
     if (theme === Theme.DARK) root.classList.add('dark');
     else root.classList.remove('dark');
   }, [theme]);
 
-  // load saved views once
   useEffect(() => {
     try {
       const storedViews = localStorage.getItem('vitalflux_saved_views');
       if (storedViews) {
-        const parsed = JSON.parse(storedViews) as SavedView[];
-        setSavedViews(Array.isArray(parsed) ? parsed : []);
+        setSavedViews(JSON.parse(storedViews));
       }
     } catch (error) {
       console.error('Failed to load saved views from localStorage', error);
@@ -59,11 +56,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, []);
 
   const saveCurrentView = (name: string) => {
-    const newView: SavedView = {
-      id: new Date().toISOString(),
-      name,
-      view,
-    };
+    const newView: SavedView = { id: new Date().toISOString(), name, view };
     const updatedViews = [...savedViews, newView];
     setSavedViews(updatedViews);
     localStorage.setItem('vitalflux_saved_views', JSON.stringify(updatedViews));
@@ -91,6 +84,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         savedViews,
         saveCurrentView,
         deleteView,
+        primaryColor, // **NEW**
+        setPrimaryColor, // **NEW**
       }}
     >
       {children}

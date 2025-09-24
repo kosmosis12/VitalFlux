@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Plus, X } from '@phosphor-icons/react';
+import { Plus, X, ChatCircleDots, PaintBrush } from '@phosphor-icons/react';
+// FIX: Split the import into a value import and a type-only import
+import { SketchPicker } from 'react-color';
+import type { ColorResult } from 'react-color';
+import { useApp } from '../contexts/AppContests';
 
-// Import all widgets
+// Import all widgets and AI components
 import AdherenceRateOverTime from '../components/widgets/AdherenceRateOverTime';
 import ActivePatientsByProgram from '../components/widgets/ActivePatientsbyProgram';
 import PatientRiskLevelDistribution from '../components/widgets/PatientRiskLevelDistribution';
 import ReadmissionsbyCondition from '../components/widgets/ReadmissionsbyCondition';
 import AverageCostAvoidancePerProgram from '../components/widgets/AverageCostAvoidanceperProgram';
-
-// Import AI components
 import GeminiChat from '../components/GeminiChat';
 import DynamicAiWidget from '../components/widgets/DynamicAiWidget';
 
@@ -21,7 +23,6 @@ const widgetCatalog = {
 };
 type WidgetKey = keyof typeof widgetCatalog;
 
-// This is the corrected, self-contained WidgetModal component
 const WidgetModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -63,11 +64,38 @@ const WidgetModal: React.FC<{
   );
 };
 
+const DesignPanel: React.FC<{
+    onClose: () => void;
+}> = ({ onClose }) => {
+    const { primaryColor, setPrimaryColor } = useApp();
+
+    const handleColorChange = (color: ColorResult) => {
+        setPrimaryColor(color.hex);
+    };
+
+    return (
+        <div className="fixed bottom-5 left-5 bg-white dark:bg-gray-800 rounded-lg shadow-xl border dark:border-gray-700 z-50">
+            <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                <h3 className="font-bold text-lg dark:text-white">Design Panel</h3>
+                <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <X size={20} className="text-gray-600 dark:text-gray-300" />
+                </button>
+            </div>
+            <div className="p-4">
+                <label className="text-sm font-medium dark:text-gray-300">Primary Color</label>
+                <SketchPicker color={primaryColor} onChangeComplete={handleColorChange} />
+            </div>
+        </div>
+    );
+};
+
 
 const CommandCenter: React.FC = () => {
-  const [catalogWidgets, setCatalogWidgets] = useState<any[]>([]); // For user-selected widgets
-  const [aiWidgets, setAiWidgets] = useState<any[]>([]); // For AI-generated widgets
+  const [catalogWidgets, setCatalogWidgets] = useState<any[]>([]);
+  const [aiWidgets, setAiWidgets] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isDesignPanelOpen, setIsDesignPanelOpen] = useState(false);
 
   const handleAddWidget = (widgetKey: WidgetKey) => {
     if ((catalogWidgets.length + aiWidgets.length) < 4) {
@@ -91,7 +119,6 @@ const CommandCenter: React.FC = () => {
   };
   
   const handleAiError = (message: string) => {
-      // You can add a toast notification here if you like
       console.warn("AI Error:", message);
   };
 
@@ -113,7 +140,6 @@ const CommandCenter: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Render Catalog Widgets */}
           {catalogWidgets.map((widget, index) => (
             <div key={`catalog-${index}`} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 h-96 flex flex-col">
               <div className="flex justify-between items-center mb-2">
@@ -126,7 +152,6 @@ const CommandCenter: React.FC = () => {
             </div>
           ))}
 
-          {/* Render AI Widgets */}
           {aiWidgets.map((config, index) => (
              <div key={`ai-${index}`} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 h-96 flex flex-col">
               <div className="flex justify-between items-center mb-2">
@@ -139,7 +164,6 @@ const CommandCenter: React.FC = () => {
             </div>
           ))}
 
-          {/* Render "Add Widget" placeholder if there's space */}
           {totalWidgets < 4 && (
             <div onClick={() => setIsModalOpen(true)} className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center h-96 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                 <div className="text-center text-gray-500 dark:text-gray-400">
@@ -151,10 +175,34 @@ const CommandCenter: React.FC = () => {
         </div>
       )}
 
-      {/* The AI Chat component is now always rendered */}
-      <GeminiChat onNewWidget={handleAiNewWidget} onError={handleAiError} />
+      <div className="fixed bottom-5 right-5 z-40">
+        {isChatOpen ? (
+          <GeminiChat onNewWidget={handleAiNewWidget} onError={handleAiError} />
+        ) : (
+          <button
+            onClick={() => setIsChatOpen(true)}
+            className="bg-primary-500 text-white font-semibold py-3 px-5 rounded-lg shadow-lg hover:bg-primary-600 transition-colors flex items-center gap-2"
+          >
+            <ChatCircleDots size={24} />
+            VitalFlux AI Assistant
+          </button>
+        )}
+      </div>
 
-      {/* The modal is still available */}
+      <div className="fixed bottom-5 left-5 z-40">
+        {isDesignPanelOpen ? (
+            <DesignPanel onClose={() => setIsDesignPanelOpen(false)} />
+        ) : (
+            <button
+                onClick={() => setIsDesignPanelOpen(true)}
+                className="bg-gray-700 text-white font-semibold py-3 px-5 rounded-lg shadow-lg hover:bg-gray-800 transition-colors flex items-center gap-2"
+            >
+                <PaintBrush size={24} />
+                Design Panel
+            </button>
+        )}
+      </div>
+
       <WidgetModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSelect={handleAddWidget} existingWidgets={[...catalogWidgets, ...aiWidgets]} />
     </div>
   );
