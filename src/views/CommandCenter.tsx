@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Plus, X, ChatCircleDots, PaintBrush } from '@phosphor-icons/react';
-// FIX: Split the import into a value import and a type-only import
 import { SketchPicker } from 'react-color';
 import type { ColorResult } from 'react-color';
 import { useApp } from '../contexts/AppContests';
@@ -74,16 +73,19 @@ const DesignPanel: React.FC<{
     };
 
     return (
-        <div className="fixed bottom-5 left-5 bg-white dark:bg-gray-800 rounded-lg shadow-xl border dark:border-gray-700 z-50">
-            <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                <h3 className="font-bold text-lg dark:text-white">Design Panel</h3>
-                <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
-                    <X size={20} className="text-gray-600 dark:text-gray-300" />
-                </button>
-            </div>
-            <div className="p-4">
-                <label className="text-sm font-medium dark:text-gray-300">Primary Color</label>
-                <SketchPicker color={primaryColor} onChangeComplete={handleColorChange} />
+        // FIX: Adjusted 'left' position and z-index
+        <div className="fixed bottom-5 z-50" style={{ left: '260px' }}> {/* Assuming sidebar width is ~240px + some padding */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border dark:border-gray-700">
+                <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                    <h3 className="font-bold text-lg dark:text-white">Design Panel</h3>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <X size={20} className="text-gray-600 dark:text-gray-300" />
+                    </button>
+                </div>
+                <div className="p-4">
+                    <label className="text-sm font-medium dark:text-gray-300">Primary Color</label>
+                    <SketchPicker color={primaryColor} onChangeComplete={handleColorChange} />
+                </div>
             </div>
         </div>
     );
@@ -189,7 +191,7 @@ const CommandCenter: React.FC = () => {
         )}
       </div>
 
-      <div className="fixed bottom-5 left-5 z-40">
+      <div className="fixed bottom-5 z-40" style={{ left: '20px' }}> {/* Button's position relative to its parent */}
         {isDesignPanelOpen ? (
             <DesignPanel onClose={() => setIsDesignPanelOpen(false)} />
         ) : (
