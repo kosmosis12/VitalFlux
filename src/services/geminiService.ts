@@ -12,7 +12,7 @@ export const vitalflux_adherence_daily_csv = { name: 'vitalflux_adherence_daily.
 export const vitalflux_cohort_outcomes_csv = { name: 'vitalflux_cohort_outcomes.csv', adherence_pct: '[...]', condition: '[...]', readmit_30d_pct: '[...]', region: '[...]', month: 'DateDimension' };
 export const vitalflux_cost_impact_csv = { name: 'vitalflux_cost_impact.csv', est_cost_avoidance_usd: '[...]', program: '[...]' };
 export const vitalflux_patients_csv = { name: 'vitalflux_patients.csv', patient_id: '[...]', program: '[...]', risk_band: '[...]' };
-export const vitalflux_readmissions_csv = { name: 'vitalflux_readmissions.csv', condition: '[...]', readmitted_within_30d: '[...]' };
+export const vitalflux_readmissions_csv = { name: 'vitalflux_readmissions.csv', condition: '[...]', readmitted_within_30d: '[...]', program: '[...]' };
 
 // Available chart types: 'line', 'bar', 'column', 'pie', 'indicator'.
 // IMPORTANT: For any 'DateDimension' field like 'date' or 'month', you must specify a granularity, e.g., 'DM.table.date.Days' or 'DM.table.date.Months'.
@@ -31,11 +31,12 @@ export async function generateWidgetConfig(prompt: string): Promise<any> {
     Your goal is to generate a JSON configuration for a Sisense chart widget based on a user's request.
     You must use the provided data model schema.
 
-    IMPORTANT RULE: For any field that is a 'DateDimension', you CANNOT use it directly. You MUST append a granularity level like '.Days' or '.Months'.
-    For example, if the user asks for "adherence trend over time", the category should be "DM.vitalflux_adherence_daily_csv.date.Months".
+    **MOST IMPORTANT RULE**: All dimensions and measures (category, value, breakBy) used in a single chart configuration MUST come from the same data table. For example, you cannot use a category from 'vitalflux_patients_csv' and a value from 'vitalflux_readmissions_csv' in the same chart.
+
+    **Date Dimension RULE**: For any field that is a 'DateDimension', you CANNOT use it directly. You MUST append a granularity level like '.Days' or '.Months'.
 
     Example 1: User asks for "Show me the number of patients per program".
-    Correct JSON output:
+    Correct JSON output (uses only 'vitalflux_patients_csv'):
     {
       "chartType": "bar",
       "title": "Number of Patients by Program",
@@ -47,7 +48,7 @@ export async function generateWidgetConfig(prompt: string): Promise<any> {
     }
 
     Example 2: User asks for "daily patient adherence trend".
-    Correct JSON output:
+    Correct JSON output (uses only 'vitalflux_adherence_daily_csv'):
     {
       "chartType": "line",
       "title": "Daily Patient Adherence Trend",
@@ -72,10 +73,12 @@ export async function generateWidgetConfig(prompt: string): Promise<any> {
     const response = await result.response;
     let text = await response.text();
     
-    // FIX: Replaced backticks with single quotes to correct the syntax error
-    text = text.replace(/'''json/g, '').replace(/'''/g, '').trim();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+        throw new Error("No valid JSON object found in the AI response.");
+    }
     
-    return JSON.parse(text);
+    return JSON.parse(jsonMatch[0]);
   } catch (error) {
     console.error("Error parsing Gemini API response:", error);
     return { error: 'The AI returned an invalid response. Please try rephrasing your question.' };

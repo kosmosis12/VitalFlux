@@ -4,12 +4,12 @@ import * as DM from '../../VitalFlux';
 import { measureFactory } from '@sisense/sdk-data';
 
 interface DynamicAiWidgetProps {
-  chartType: string; // Allow any string from AI
+  chartType: string;
   dataOptions: any;
 }
 
-// Safe path resolver to replace eval()
-function resolvePath(expr: string, ctx: Record<string, any>) {
+// FIX: Added ': any' to explicitly define the function's return type
+function resolvePath(expr: string, ctx: Record<string, any>): any {
   if (typeof expr !== 'string') return undefined;
 
   if (expr.startsWith('DM.')) {
@@ -35,20 +35,17 @@ const evaluateDataOptions = (options: any) => {
   const context = { DM, measureFactory };
   for (const key of ['category', 'value', 'breakBy', 'secondary']) {
     if (Array.isArray(options?.[key])) {
-      out[key] = options[key].map((s: string) => resolvePath(s, context)).filter(Boolean); // Filter out any undefined results
+      out[key] = options[key].map((s: string) => resolvePath(s, context)).filter(Boolean);
     }
   }
   return out;
 };
 
-
 const DynamicAiWidget: React.FC<DynamicAiWidgetProps> = ({ chartType, dataOptions }) => {
-  // Guard against missing essential data before rendering
   if (!dataOptions?.value || dataOptions.value.length === 0) {
     return <div className="p-4 text-gray-500">Waiting for valid data configuration...</div>;
   }
 
-  // Validate and clamp the chartType to a known set of allowed values
   const allowedChartTypes = new Set(['line', 'bar', 'column', 'pie', 'indicator']);
   const safeChartType = allowedChartTypes.has(chartType) ? chartType : 'bar';
 
