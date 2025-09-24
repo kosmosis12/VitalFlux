@@ -73,7 +73,6 @@ const DesignPanel: React.FC<{
     };
 
     return (
-      <div className="fixed bottom-20 z-50"> {/* Removed left style to be controlled by parent */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border dark:border-gray-700">
             <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
                 <h3 className="font-bold text-lg dark:text-white">Design Panel</h3>
@@ -86,7 +85,6 @@ const DesignPanel: React.FC<{
                 <SketchPicker color={primaryColor} onChangeComplete={handleColorChange} />
             </div>
         </div>
-      </div>
     );
 };
 
@@ -126,7 +124,7 @@ const CommandCenter: React.FC = () => {
   const totalWidgets = catalogWidgets.length + aiWidgets.length;
 
   return (
-    <div className="relative h-full"> {/* Make this a positioning container */}
+    <div className="relative h-full">
       <div className="space-y-6">
         {totalWidgets === 0 ? (
           <div className="flex flex-col items-center justify-center h-[calc(100vh-20rem)] text-center">
@@ -178,9 +176,8 @@ const CommandCenter: React.FC = () => {
         )}
       </div>
 
-      {/* FIX: New container for bottom controls */}
-      <div className="absolute bottom-5 w-full flex justify-between items-end px-6">
-          <div> {/* Left-aligned items */}
+      <div className="fixed bottom-0 left-0 right-0 w-full flex justify-between items-end p-6 pointer-events-none">
+          <div className="pointer-events-auto">
             {isDesignPanelOpen ? (
                 <DesignPanel onClose={() => setIsDesignPanelOpen(false)} />
             ) : (
@@ -194,7 +191,7 @@ const CommandCenter: React.FC = () => {
             )}
           </div>
           
-          <div> {/* Right-aligned items */}
+          <div className="pointer-events-auto">
             {isChatOpen ? (
               <GeminiChat onNewWidget={handleAiNewWidget} onError={handleAiError} />
             ) : (
