@@ -1,10 +1,9 @@
-// src/contexts/AppContests.tsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { View, Role, Theme } from '../types';
 import type { Tenant, SavedView } from '../types';
 
 const TENANTS: Tenant[] = [
-  { name: 'Default Tenant', logo: '', theme: { primaryColor: '#3b82f6' } }, // Original blue color
+  { name: 'Default Tenant', logo: '', theme: { primaryColor: '#3b82f6' } },
 ];
 
 interface AppContextType {
@@ -21,9 +20,6 @@ interface AppContextType {
   savedViews: SavedView[];
   saveCurrentView: (name: string) => void;
   deleteView: (id: string) => void;
-  // **NEW**: Add primaryColor and a function to update it
-  primaryColor: string;
-  setPrimaryColor: (color: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -35,8 +31,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(Theme.LIGHT);
   const [tenant, setTenant] = useState<Tenant>(TENANTS[0]);
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
-  // **NEW**: State for managing the primary color
-  const [primaryColor, setPrimaryColor] = useState<string>(TENANTS[0].theme.primaryColor);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -84,8 +78,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         savedViews,
         saveCurrentView,
         deleteView,
-        primaryColor, // **NEW**
-        setPrimaryColor, // **NEW**
       }}
     >
       {children}

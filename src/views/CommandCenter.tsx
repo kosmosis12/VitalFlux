@@ -65,24 +65,24 @@ const WidgetModal: React.FC<{
 
 const DesignPanel: React.FC<{
     onClose: () => void;
-}> = ({ onClose }) => {
-    const { primaryColor, setPrimaryColor } = useApp();
-
-    const handleColorChange = (color: ColorResult) => {
-        setPrimaryColor(color.hex);
+    color: string;
+    setColor: (color: string) => void;
+}> = ({ onClose, color, setColor }) => {
+    const handleColorChange = (colorResult: ColorResult) => {
+        setColor(colorResult.hex);
     };
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border dark:border-gray-700">
             <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                <h3 className="font-bold text-lg dark:text-white">Design Panel</h3>
+                <h3 className="font-bold text-lg dark:text-white">Widget Design</h3>
                 <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
                     <X size={20} className="text-gray-600 dark:text-gray-300" />
                 </button>
             </div>
             <div className="p-4">
-                <label className="text-sm font-medium dark:text-gray-300">Primary Color</label>
-                <SketchPicker color={primaryColor} onChangeComplete={handleColorChange} />
+                <label className="text-sm font-medium dark:text-gray-300">Widget Color</label>
+                <SketchPicker color={color} onChangeComplete={handleColorChange} />
             </div>
         </div>
     );
@@ -95,6 +95,7 @@ const CommandCenter: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isDesignPanelOpen, setIsDesignPanelOpen] = useState(false);
+  const [widgetColor, setWidgetColor] = useState<string>('#3b82f6'); 
 
   const handleAddWidget = (widgetKey: WidgetKey) => {
     if ((catalogWidgets.length + aiWidgets.length) < 4) {
@@ -142,13 +143,15 @@ const CommandCenter: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {catalogWidgets.map((widget, index) => (
               <div key={`catalog-${index}`} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 h-96 flex flex-col">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-semibold text-lg text-gray-700 dark:text-gray-200">{widget.title}</h3>
-                  <button onClick={() => handleRemoveCatalogWidget(index)} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" title="Remove Widget">
-                     <X size={16} className="text-gray-500 dark:text-gray-400" />
-                  </button>
+                 <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-semibold text-lg text-gray-700 dark:text-gray-200">{widget.title}</h3>
+                    <button onClick={() => handleRemoveCatalogWidget(index)} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" title="Remove Widget">
+                        <X size={16} className="text-gray-500 dark:text-gray-400" />
+                    </button>
                 </div>
-                <div className="flex-grow h-full">{widget.component}</div>
+                <div className="flex-grow h-full">
+                    {React.cloneElement(widget.component, { color: widgetColor })}
+                </div>
               </div>
             ))}
 
@@ -160,7 +163,7 @@ const CommandCenter: React.FC = () => {
                      <X size={16} className="text-gray-500 dark:text-gray-400" />
                   </button>
                 </div>
-                <DynamicAiWidget chartType={config.chartType} dataOptions={config.dataOptions} />
+                <DynamicAiWidget chartType={config.chartType} dataOptions={config.dataOptions} color={widgetColor} />
               </div>
             ))}
 
@@ -179,7 +182,7 @@ const CommandCenter: React.FC = () => {
       <div className="fixed bottom-0 left-0 right-0 w-full flex justify-between items-end p-6 pointer-events-none">
           <div className="pointer-events-auto">
             {isDesignPanelOpen ? (
-                <DesignPanel onClose={() => setIsDesignPanelOpen(false)} />
+                <DesignPanel onClose={() => setIsDesignPanelOpen(false)} color={widgetColor} setColor={setWidgetColor} />
             ) : (
                 <button
                     onClick={() => setIsDesignPanelOpen(true)}

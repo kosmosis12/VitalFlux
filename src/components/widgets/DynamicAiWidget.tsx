@@ -1,47 +1,70 @@
 import React from 'react';
-import { Chart } from '@sisense/sdk-ui';
+import { Chart, ThemeProvider } from '@sisense/sdk-ui';
 import * as DM from '../../VitalFlux';
 import { measureFactory } from '@sisense/sdk-data';
 
 interface DynamicAiWidgetProps {
   chartType: string;
   dataOptions: any;
+  color?: string;
 }
 
-// FIX: Added ': any' to explicitly define the function's return type
-function resolvePath(expr: string, ctx: Record<string, any>): any {
+const context = { DM, measureFactory };
+
+function resolvePath(expr: string): any {
   if (typeof expr !== 'string') return undefined;
 
   if (expr.startsWith('DM.')) {
-    return expr.split('.').slice(1).reduce((o, k) => (o ? o[k] : undefined), ctx.DM);
+    return expr.split('.').slice(1).reduce((o, k) => (o ? o[k] : undefined), context.DM);
   }
   if (expr.startsWith('measureFactory.')) {
     const match = expr.match(/^measureFactory\.(\w+)\(([^,]+)(?:,\s*['"](.*)['"])?\)$/);
     if (!match) return undefined;
     
     const [, fn, dmArg, alias] = match;
-    const resolvedDm = resolvePath(dmArg.trim(), ctx);
+    const resolvedDm = resolvePath(dmArg.trim());
     
-    if (ctx.measureFactory?.[fn]) {
-        // @ts-ignore - We are dynamically calling the factory function
-        return ctx.measureFactory[fn](resolvedDm, alias ?? undefined);
+    if (context.measureFactory?.[fn as keyof typeof measureFactory]) {
+        // @ts-ignore - Dynamically calling the factory function
+        return context.measureFactory[fn](resolvedDm, alias ?? undefined);
     }
   }
   return undefined;
 }
 
-const evaluateDataOptions = (options: any) => {
+const evaluateDataOptions = (options: any, color?: string) => {
   const out: any = {};
-  const context = { DM, measureFactory };
-  for (const key of ['category', 'value', 'breakBy', 'secondary']) {
-    if (Array.isArray(options?.[key])) {
-      out[key] = options[key].map((s: string) => resolvePath(s, context)).filter(Boolean);
-    }
+  
+  if (Array.isArray(options?.category)) {
+      out.category = options.category.map(resolvePath).filter(Boolean);
   }
+
+  if (Array.isArray(options?.value)) {
+      out.value = options.value.map((valStr: string) => {
+          const resolvedColumn = resolvePath(valStr);
+          if (!resolvedColumn) return null;
+          // Correctly structure the measure with its color
+          return {
+              column: resolvedColumn,
+              ...(color ? { color } : {}),
+          };
+      }).filter(Boolean);
+  }
+  
+  if (Array.isArray(options?.breakBy)) {
+      out.breakBy = options.breakBy.map(resolvePath).filter(Boolean);
+  }
+  
+  // For indicator secondary values, which don't get colored
+  if (Array.isArray(options?.secondary)) {
+      out.secondary = options.secondary.map(resolvePath).filter(Boolean);
+  }
+
   return out;
 };
 
-const DynamicAiWidget: React.FC<DynamicAiWidgetProps> = ({ chartType, dataOptions }) => {
+
+const DynamicAiWidget: React.FC<DynamicAiWidgetProps> = ({ chartType, dataOptions, color }) => {
   if (!dataOptions?.value || dataOptions.value.length === 0) {
     return <div className="p-4 text-gray-500">Waiting for valid data configuration...</div>;
   }
@@ -50,8 +73,29 @@ const DynamicAiWidget: React.FC<DynamicAiWidgetProps> = ({ chartType, dataOption
   const safeChartType = allowedChartTypes.has(chartType) ? chartType : 'bar';
 
   try {
-    const safeDataOptions = evaluateDataOptions(dataOptions);
-    return <Chart dataSet={DM.DataSource} chartType={safeChartType as any} dataOptions={safeDataOptions} />;
+    // Pass color to correctly structure the data options for non-indicator charts
+    const safeDataOptions = evaluateDataOptions(dataOptions, color);
+
+    const chart = (
+        <Chart
+            dataSet={DM.DataSource}
+            chartType={safeChartType as any}
+            dataOptions={safeDataOptions}
+        />
+    );
+
+    // Handle the special case for indicator backgrounds
+    if (safeChartType === 'indicator' && color) {
+        return (
+            <ThemeProvider theme={{ chart: { backgroundColor: color } }}>
+                {chart}
+            </ThemeProvider>
+        );
+    }
+    
+    // For all other chart types, the color is already in dataOptions
+    return chart;
+    
   } catch (error) {
     console.error("Error rendering dynamic widget:", error);
     return <div className="text-red-500 p-4">Error: Could not render the requested chart.</div>;
