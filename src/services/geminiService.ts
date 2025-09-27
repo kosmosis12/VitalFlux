@@ -1,64 +1,56 @@
 // src/services/geminiService.ts
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getModelName } from "../config/ai";
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
-// Using the most standard model as a final diagnostic step.
-const MODEL_NAME = "gemini-pro";
 
-type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
-export type WidgetConfig = { [k: string]: JsonValue };
+export type WidgetConfig = { [key: string]: any };
 
 function buildPrompt(userMessage: string): string {
-  // A simplified and direct prompt for maximum reliability
-  return `
-You are the VitalFlux AI Assistant. Return ONLY a single JSON object that describes a chart/widget config
-for our React front end. Do not include markdown or prose.
-
-Minimum shape:
-{
-  "chartType": "line" | "bar" | "pie" | "area" | "scatter",
-  "dataOptions": {
-    "measures": string[],
-    "dimensions": string[],
-    "filters": Array<{ field: string, op: string, value: any }>
-  },
-  "title": string,
-  "notes"?: string
+  return `Return ONLY a JSON object: { "chartType":"...", "dataOptions":{ "measures":[], "dimensions":[], "filters":[] }, "title":"..." }. User: ${userMessage}`;
 }
 
-Strictly output valid JSON. Do not wrap in code fences.
-User request: ${userMessage}
-`;
-}
-
-function extractFirstJsonObject(text: string): WidgetConfig {
+const pickJson = (text: string): WidgetConfig => {
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) throw new Error("No JSON object found in the model response.");
   return JSON.parse(match[0]);
+};
+
+async function restGenerate(prompt: string, model: string): Promise<WidgetConfig> {
+  // The REST fallback uses the v1 endpoint, which is more stable.
+  const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${API_KEY}`;
+  const body = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`REST API Error ${response.status}: ${await response.text()}`);
+  }
+  const json = await response.json();
+  const text = json?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  return pickJson(text);
 }
 
 export async function generateWidgetConfig(userMessage: string): Promise<WidgetConfig | { error: string }> {
   try {
-    if (!API_KEY) {
-      return { error: "VITE_GEMINI_API_KEY is not configured." };
+    if (!API_KEY) return { error: "VITE_GEMINI_API_KEY is not configured." };
+    const modelName = getModelName();
+
+    // First, try the standard SDK path.
+    try {
+      const genAI = new GoogleGenerativeAI(API_KEY);
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(buildPrompt(userMessage));
+      return pickJson(result.response.text());
+    } catch (sdkError) {
+      console.warn("[geminiService] SDK call failed, attempting REST fallback:", sdkError);
+      // If the SDK fails, try the direct REST call as a backup.
+      return await restGenerate(buildPrompt(userMessage), modelName);
     }
-
-    const genAI = new GoogleGenerativeAI(API_KEY);
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-
-    const prompt = buildPrompt(userMessage);
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
-
-    const json = extractFirstJsonObject(text);
-
-    if (!json || typeof json !== "object" || !("chartType" in json)) {
-      return { error: "The AI response did not contain a valid widget config." };
-    }
-    return json;
   } catch (err: any) {
-    console.error("[geminiService] Error:", err);
+    console.error("[geminiService] Final error:", err);
     return { error: err?.message || "An unexpected error occurred." };
   }
 }
