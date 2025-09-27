@@ -1,16 +1,16 @@
+// src/components/GeminiChat.tsx
 import React, { useState } from 'react';
 import { PaperPlaneTilt, Spinner } from '@phosphor-icons/react';
-import { generateWidgetConfig } from '../services/geminiService'; // Import the service
+import { generateWidgetConfig } from '../services/geminiService';
+import type { WidgetConfig } from '../services/geminiService';
 
-// Define the message structure
 interface Message {
   text: string;
   isUser: boolean;
 }
 
-// Update props to include error handling
 interface GeminiChatProps {
-  onNewWidget: (widgetConfig: any) => void;
+  onNewWidget: (widgetConfig: WidgetConfig) => void;
   onError: (errorMessage: string) => void;
 }
 
@@ -20,30 +20,27 @@ const GeminiChat: React.FC<GeminiChatProps> = ({ onNewWidget, onError }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    const trimmedInput = input.trim();
+    if (!trimmedInput || isLoading) return;
 
-    const userMessage: Message = { text: input, isUser: true };
+    const userMessage: Message = { text: trimmedInput, isUser: true };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
-    // Call the actual geminiService to get the widget configuration
-    const result = await generateWidgetConfig(userMessage.text);
+    const result = await generateWidgetConfig(trimmedInput);
     setIsLoading(false);
 
-    // Handle the response from the API
-    if (result && !result.error) {
-      const aiResponse: Message = {
-        text: `Of course. Here is the chart for "${result.title}".`,
-        isUser: false,
-      };
-      setMessages(prev => [...prev, aiResponse]);
-      onNewWidget(result);
-    } else {
-      const errorMessage = result?.error || 'Sorry, I was unable to create that chart.';
+    if (result && 'error' in result) {
+      const errorMessage = String(result.error || 'Sorry, I was unable to create that widget.');
       const errorResponse: Message = { text: errorMessage, isUser: false };
       setMessages(prev => [...prev, errorResponse]);
       onError(errorMessage);
+    } else {
+      const title = typeof result.title === 'string' ? result.title : 'your request';
+      const successMessage: Message = { text: `✅ Widget created for "${title}".`, isUser: false };
+      setMessages(prev => [...prev, successMessage]);
+      onNewWidget(result);
     }
   };
 
@@ -60,8 +57,7 @@ const GeminiChat: React.FC<GeminiChatProps> = ({ onNewWidget, onError }) => {
             </div>
           </div>
         ))}
-        {/* Show a spinner when the AI is "thinking" */}
-         {isLoading && (
+        {isLoading && (
             <div className="flex justify-start gap-2">
                  <div className="max-w-xs rounded-lg px-3 py-2 bg-gray-200 dark:bg-gray-700">
                     <Spinner size={20} className="animate-spin" />
@@ -82,7 +78,7 @@ const GeminiChat: React.FC<GeminiChatProps> = ({ onNewWidget, onError }) => {
         <button 
             onClick={handleSend} 
             className="ml-2 p-2 rounded-md bg-primary-500 text-white hover:bg-primary-600 disabled:bg-primary-300" 
-            disabled={isLoading}
+            disabled={isLoading || !input.trim()}
         >
           <PaperPlaneTilt size={20} />
         </button>
