@@ -2,27 +2,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getModelName } from "../config/ai";
 
-// ---------- Resilient API key loader ----------
-function getApiKey(): string | undefined {
-  // 1) Preferred: Vite env
-  const viteKey = (import.meta as any)?.env?.VITE_GEMINI_API_KEY as string | undefined;
-  if (viteKey) return viteKey;
-
-  // 2) Window override (set from console): window.VITE_GEMINI_API_KEY = "AIza..."
-  const winKey = (globalThis as any)?.VITE_GEMINI_API_KEY as string | undefined;
-  if (winKey) return winKey;
-
-  // 3) localStorage override (dev-only)
-  try {
-    const lsKey = localStorage.getItem("VITE_GEMINI_API_KEY") || undefined;
-    if (lsKey) return lsKey;
-  } catch {}
-
-  return undefined;
-}
-
-const API_KEY = getApiKey();
-
 // ---------- Types ----------
 export type WidgetConfig = Record<string, any>;
 
@@ -64,12 +43,15 @@ function normalizeModelName(raw?: string): string {
   return v || fallback;
 }
 
+// ---------- API key loader ----------
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
+
 // ---------- REST fallback ----------
-async function restGenerate(prompt: string, model: string): Promise<WidgetConfig> {
+async function restGenerate(prompt: string, model: string, apiKey: string): Promise<WidgetConfig> {
   const m = normalizeModelName(model);
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     m
-  )}:generateContent?key=${API_KEY}`;
+  )}:generateContent?key=${apiKey}`;
 
   const body = {
     contents: [
@@ -107,19 +89,19 @@ export async function generateWidgetConfig(
 ): Promise<WidgetConfig | { error: string }> {
   console.log(
     "API Key loaded by the service:",
-    API_KEY ? `Key starts with "${API_KEY.slice(0, 4)}"` : "API Key is UNDEFINED (set .env or window/localStorage override)"
+    API_KEY ? `Key starts with "${API_KEY.slice(0, 4)}"` : "API Key is UNDEFINED"
   );
 
   try {
-    if (!API_KEY) {
-      return { error: "VITE_GEMINI_API_KEY is not configured." };
-    }
+    if (!API_KEY) return { error: "VITE_GEMINI_API_KEY is not configured." };
 
+    const apiKey: string = API_KEY; // 🔒 narrowed
     const modelName = normalizeModelName(getModelName());
     const prompt = buildPrompt(userMessage);
 
     try {
-      const genAI = new GoogleGenerativeAI(API_KEY);
+      // 🔒 pass a definite string to the SDK
+      const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: modelName });
 
       const result = await model.generateContent({
@@ -131,29 +113,21 @@ export async function generateWidgetConfig(
         ],
       });
 
-      const text =
-        result?.response?.text?.() ??
-        result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ??
-        "";
+      // Most SDK versions expose a synchronous text() helper:
+      const text = typeof result?.response?.text === "function"
+        ? result.response.text()
+        : (result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ?? "");
 
       if (!text) throw new Error("Empty SDK response.");
       return pickJson(text);
     } catch (sdkErr) {
       console.warn("[geminiService] SDK failed, trying REST v1beta:", sdkErr);
-      return await restGenerate(prompt, modelName);
+      // 🔒 REST also receives a definite apiKey
+      return await restGenerate(prompt, modelName, apiKey);
     }
   } catch (err: any) {
     console.error("[geminiService] Final error:", err);
     return { error: err?.message || "Unexpected error generating widget." };
   }
 }
-
-// Optional: helper to set the key at runtime from DevTools if Vite misses .env
-export function setRuntimeGeminiKey(k: string) {
-  (globalThis as any).VITE_GEMINI_API_KEY = k;
-  try { localStorage.setItem("VITE_GEMINI_API_KEY", k); } catch {}
-  console.info("[VitalFlux AI] Runtime Gemini key set.");
-}
-
-
 

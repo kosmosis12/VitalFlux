@@ -17,9 +17,9 @@ import WidgetWrapper from '../components/WidgetWrapper';
 interface WidgetInstance {
   id: number;
   title: string;
-  component: React.ReactElement;
+  component: React.ReactElement;  // must be an element for WidgetWrapper children
   isAi: boolean;
-  config?: WidgetConfig; // Store AI config here
+  config?: WidgetConfig;          // Store AI config here
 }
 
 // Pre-defined widgets from the catalog
@@ -98,23 +98,20 @@ const CommandCenter: React.FC = () => {
   const handleAiNewWidget = (config: WidgetConfig) => {
     if (widgets.length >= 4) return;
 
-    // Guard: ensure minimal structure from AI
+    // Guard: ensure minimal structure from AI so the DynamicAiWidget always mounts
     const chartType = (config as any)?.chartType ?? 'bar';
-    const dataOptions = (config as any)?.dataOptions ?? { measures: [], dimensions: [], filters: [] };
-    const title = typeof (config as any)?.title === 'string' && (config as any).title
-      ? (config as any).title
-      : "AI-Generated Widget";
+    const dataOptions =
+      (config as any)?.dataOptions ?? { measures: [], dimensions: [], filters: [] };
+    const title =
+      typeof (config as any)?.title === 'string' && (config as any).title
+        ? (config as any).title
+        : 'AI-Generated Widget';
 
     const newWidget: Omit<WidgetInstance, 'id'> = {
       title,
       isAi: true,
       config,
-      component: (
-        <DynamicAiWidget
-          chartType={chartType as any}
-          dataOptions={dataOptions}
-        />
-      ),
+      component: <DynamicAiWidget chartType={chartType as any} dataOptions={dataOptions} />,
     };
 
     addWidget(newWidget);
