@@ -98,18 +98,21 @@ const CommandCenter: React.FC = () => {
   const handleAiNewWidget = (config: WidgetConfig) => {
     if (widgets.length >= 4) return;
 
-    // Use title from AI response, with a fallback
-    const title = typeof config.title === 'string' && config.title ? config.title : "AI-Generated Widget";
-    
-    // Create the new widget instance with the config
+    // Guard: ensure minimal structure from AI
+    const chartType = (config as any)?.chartType ?? 'bar';
+    const dataOptions = (config as any)?.dataOptions ?? { measures: [], dimensions: [], filters: [] };
+    const title = typeof (config as any)?.title === 'string' && (config as any).title
+      ? (config as any).title
+      : "AI-Generated Widget";
+
     const newWidget: Omit<WidgetInstance, 'id'> = {
       title,
       isAi: true,
       config,
       component: (
         <DynamicAiWidget
-          chartType={config.chartType as any}
-          dataOptions={config.dataOptions}
+          chartType={chartType as any}
+          dataOptions={dataOptions}
         />
       ),
     };
@@ -122,7 +125,6 @@ const CommandCenter: React.FC = () => {
   };
 
   const handleAiError = (message: string) => {
-    // You can replace this with a toast or snackbar notification
     console.warn('AI Error:', message);
     alert(`AI Error: ${message}`);
   };
@@ -200,3 +202,4 @@ const CommandCenter: React.FC = () => {
 };
 
 export default CommandCenter;
+

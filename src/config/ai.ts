@@ -1,21 +1,31 @@
 // src/config/ai.ts
-export const ALLOWED = ["gemini-1.5-flash", "gemini-1.5-pro"] as const;
+
+/**
+ * Allowed model names (drop the "models/" prefix when using the SDK/REST).
+ * Put the cheapest, stable options first.
+ */
+export const ALLOWED = [
+  "gemini-2.5-flash-lite", // cheapest, good for chart titles/captions/config JSON
+  "gemini-2.5-flash",      // still inexpensive, stronger reasoning/length
+  "gemini-2.0-flash",      // stable 2.0 flash
+  "gemini-pro",            // allowed, but not default (costlier)
+] as const;
+
 export type AllowedModel = typeof ALLOWED[number];
 
+/**
+ * Returns the model VitalFlux should use by default.
+ * You can temporarily override at runtime by setting:
+ *   (window as any).__vf_model_override__ = "gemini-2.5-flash";
+ */
 export function getModelName(): AllowedModel {
-  const envModel = (import.meta.env.VITE_GEMINI_MODEL as string) || "gemini-1.5-flash";
-  const model = (ALLOWED as readonly string[]).includes(envModel) ? (envModel as AllowedModel) : "gemini-1.5-flash";
+  const override = (window as any).__vf_model_override__;
+  const model: AllowedModel = ALLOWED.includes(override) ? override : ALLOWED[0];
 
-  // This log will appear once in your browser console to confirm which model is being used.
-  if (typeof window !== "undefined" && !(window as any).__VF_MODEL_LOGGED__) {
+  // One-time log for observability
+  if ((window as any).__vf_model_logged__ !== model) {
     console.info(`[VitalFlux AI] Using model: ${model}`);
-    (window as any).__VF_MODEL_LOGGED__ = true;
+    (window as any).__vf_model_logged__ = model;
   }
-  
-  // This guard prevents the old model from being used accidentally.
-  if (/^gemini-pro\b/.test(model)) {
-    throw new Error("Blocked legacy model 'gemini-pro'. Use gemini-1.5-*.");
-  }
-
   return model;
 }
