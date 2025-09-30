@@ -1,133 +1,86 @@
-// src/services/geminiService.ts
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getModelName } from "../config/ai";
 
-// ---------- Types ----------
-export type WidgetConfig = Record<string, any>;
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-// ---------- Prompt ----------
-function buildPrompt(userMessage: string): string {
-  return `
-Return ONLY a single JSON object:
-{
-  "chartType": "line" | "bar" | "pie" | "area" | "scatter",
-  "dataOptions": {
-    "measures": string[],
-    "dimensions": string[],
-    "filters": Array<{ field: string, op: string, value: string | number | string[] | number[] }>
-  },
-  "title": string,
-  "color"?: string,
-  "notes"?: string
-}
-No code fences. No prose. User: ${userMessage}`.trim();
+if (!API_KEY) {
+  console.error("VITE_GEMINI_API_KEY is not set in your environment variables.");
 }
 
-// ---------- Utilities ----------
-function pickJson(text: string): WidgetConfig {
-  const match = text?.match?.(/\{[\s\S]*\}/);
-  if (!match) throw new Error("No JSON object found in the AI response.");
-  return JSON.parse(match[0]);
-}
+const dataModelSchema = `
+// Data model schema here...
+export const vitalflux_adherence_daily_csv = { name: 'vitalflux_adherence_daily.csv', adherent_flag: '[...]', condition: '[...]', patient_id: '[...]', program: '[...]', region: '[...]', date: 'DateDimension' };
+export const vitalflux_cohort_outcomes_csv = { name: 'vitalflux_cohort_outcomes.csv', adherence_pct: '[...]', condition: '[...]', readmit_30d_pct: '[...]', region: '[...]', month: 'DateDimension' };
+export const vitalflux_cost_impact_csv = { name: 'vitalflux_cost_impact.csv', est_cost_avoidance_usd: '[...]', program: '[...]' };
+export const vitalflux_patients_csv = { name: 'vitalflux_patients.csv', patient_id: '[...]', program: '[...]', risk_band: '[...]' };
+export const vitalflux_readmissions_csv = { name: 'vitalflux_readmissions.csv', condition: '[...]', readmitted_within_30d: '[...]', program: '[...]' };
 
-function normalizeModelName(raw?: string): string {
-  const fallback = "gemini-2.5-flash-lite";
-  if (!raw) return fallback;
+// Available chart types: 'line', 'bar', 'column', 'pie', 'indicator'.
+// IMPORTANT: For any 'DateDimension' field like 'date' or 'month', you must specify a granularity, e.g., 'DM.table.date.Days' or 'DM.table.date.Months'.
+`;
 
-  let v = raw.trim();
-  if (v.startsWith("models/")) v = v.slice("models/".length);
-
-  if (v === "gemini-flash-latest") return "gemini-2.5-flash";
-  if (v === "gemini-pro-latest") return "gemini-2.5-pro";
-  if (v.endsWith("-latest")) return v.replace("-latest", "");
-  return v || fallback;
-}
-
-// ---------- API key loader ----------
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
-
-// ---------- REST fallback ----------
-async function restGenerate(prompt: string, model: string, apiKey: string): Promise<WidgetConfig> {
-  const m = normalizeModelName(model);
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-    m
-  )}:generateContent?key=${apiKey}`;
-
-  const body = {
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: prompt }],
-      },
-    ],
-  };
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    throw new Error(`REST API Error ${res.status}: ${errText || res.statusText}`);
+export async function generateWidgetConfig(prompt: string): Promise<any> {
+  if (!API_KEY) {
+    return { error: 'API key is not configured. Please contact an administrator.' };
   }
 
-  const data = await res.json();
-  const text =
-    data?.candidates?.[0]?.content?.parts?.[0]?.text ??
-    data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data ??
-    "";
+  const genAI = new GoogleGenerativeAI(API_KEY);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-  if (!text) throw new Error("Empty model response.");
-  return pickJson(text);
-}
+  const fullPrompt = `
+    You are an AI assistant for a healthcare analytics app called VitalFlux.
+    Your goal is to generate a JSON configuration for a Sisense chart widget based on a user's request.
+    You must use the provided data model schema.
 
-// ---------- Public API ----------
-export async function generateWidgetConfig(
-  userMessage: string
-): Promise<WidgetConfig | { error: string }> {
-  console.log(
-    "API Key loaded by the service:",
-    API_KEY ? `Key starts with "${API_KEY.slice(0, 4)}"` : "API Key is UNDEFINED"
-  );
+    **MOST IMPORTANT RULE**: All dimensions and measures (category, value, breakBy) used in a single chart configuration MUST come from the same data table. For example, you cannot use a category from 'vitalflux_patients_csv' and a value from 'vitalflux_readmissions_csv' in the same chart.
+
+    **Date Dimension RULE**: For any field that is a 'DateDimension', you CANNOT use it directly. You MUST append a granularity level like '.Days' or '.Months'.
+
+    Example 1: User asks for "Show me the number of patients per program".
+    Correct JSON output (uses only 'vitalflux_patients_csv'):
+    {
+      "chartType": "bar",
+      "title": "Number of Patients by Program",
+      "dataOptions": {
+        "category": ["DM.vitalflux_patients_csv.program"],
+        "value": ["measureFactory.count(DM.vitalflux_patients_csv.patient_id, 'Total Patients')"],
+        "breakBy": []
+      }
+    }
+
+    Example 2: User asks for "daily patient adherence trend".
+    Correct JSON output (uses only 'vitalflux_adherence_daily_csv'):
+    {
+      "chartType": "line",
+      "title": "Daily Patient Adherence Trend",
+      "dataOptions": {
+        "category": ["DM.vitalflux_adherence_daily_csv.date.Days"],
+        "value": ["measureFactory.average(DM.vitalflux_adherence_daily_csv.adherent_flag, 'Adherence Rate')"],
+        "breakBy": []
+      }
+    }
+    
+    DATA MODEL SCHEMA:
+    ${dataModelSchema}
+
+    USER REQUEST:
+    "${prompt}"
+
+    Your task is to generate ONLY the JSON configuration object. Do not include any other text or markdown formatting.
+  `;
 
   try {
-    if (!API_KEY) return { error: "VITE_GEMINI_API_KEY is not configured." };
-
-    const apiKey: string = API_KEY; // 🔒 narrowed
-    const modelName = normalizeModelName(getModelName());
-    const prompt = buildPrompt(userMessage);
-
-    try {
-      // 🔒 pass a definite string to the SDK
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: modelName });
-
-      const result = await model.generateContent({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }],
-          },
-        ],
-      });
-
-      // Most SDK versions expose a synchronous text() helper:
-      const text = typeof result?.response?.text === "function"
-        ? result.response.text()
-        : (result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ?? "");
-
-      if (!text) throw new Error("Empty SDK response.");
-      return pickJson(text);
-    } catch (sdkErr) {
-      console.warn("[geminiService] SDK failed, trying REST v1beta:", sdkErr);
-      // 🔒 REST also receives a definite apiKey
-      return await restGenerate(prompt, modelName, apiKey);
+    const result = await model.generateContent(fullPrompt);
+    const response = await result.response;
+    let text = await response.text();
+    
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+        throw new Error("No valid JSON object found in the AI response.");
     }
-  } catch (err: any) {
-    console.error("[geminiService] Final error:", err);
-    return { error: err?.message || "Unexpected error generating widget." };
+    
+    return JSON.parse(jsonMatch[0]);
+  } catch (error) {
+    console.error("Error parsing Gemini API response:", error);
+    return { error: 'The AI returned an invalid response. Please try rephrasing your question.' };
   }
 }
-
