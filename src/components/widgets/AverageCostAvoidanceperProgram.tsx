@@ -4,10 +4,13 @@ import * as DM from '../../VitalFlux';
 import { measureFactory } from '@sisense/sdk-data';
 
 interface AverageCostAvoidancePerProgramProps {
-  color?: string;
+  colorMapping?: Record<string, string>;
+  // onCategoriesAvailable is not needed here as indicators have no categories.
 }
 
-const AverageCostAvoidancePerProgram: React.FC<AverageCostAvoidancePerProgramProps> = ({ color }) => {
+const AverageCostAvoidancePerProgram: React.FC<AverageCostAvoidancePerProgramProps> = ({
+  colorMapping,
+}) => {
   const chart = (
     <Chart
       dataSet={DM.DataSource}
@@ -28,10 +31,13 @@ const AverageCostAvoidancePerProgram: React.FC<AverageCostAvoidancePerProgramPro
       }}
     />
   );
+  
+  // Use the first color from the mapping as the background color.
+  // The wrapper will provide at least one color for the "default" item.
+  const backgroundColor = colorMapping ? Object.values(colorMapping)[0] : undefined;
 
-  // Apply background via ThemeProvider only when a color is provided
-  return color ? (
-    <ThemeProvider theme={{ chart: { backgroundColor: color } }}>
+  return backgroundColor ? (
+    <ThemeProvider theme={{ chart: { backgroundColor: backgroundColor } }}>
       {chart}
     </ThemeProvider>
   ) : (
