@@ -1,60 +1,38 @@
+// src/views/CommandCenter.tsx
 import React, { useState } from 'react';
 import { Plus, X, ChatCircleDots } from '@phosphor-icons/react';
+import type { WidgetConfig } from '../services/geminiService';
 
-// IMPORTANT: paths & casing must match your filenames exactly
+// Import widget components
 import AdherenceRateOverTime from '../components/widgets/AdherenceRateOverTime';
-import ActivePatientsbyProgram from '../components/widgets/ActivePatientsbyProgram';
+import ActivePatientsByProgram from '../components/widgets/ActivePatientsbyProgram';
 import PatientRiskLevelDistribution from '../components/widgets/PatientRiskLevelDistribution';
 import ReadmissionsbyCondition from '../components/widgets/ReadmissionsbyCondition';
-import AverageCostAvoidanceperProgram from '../components/widgets/AverageCostAvoidanceperProgram';
-
+import AverageCostAvoidancePerProgram from '../components/widgets/AverageCostAvoidanceperProgram';
 import GeminiChat from '../components/GeminiChat';
 import DynamicAiWidget from '../components/widgets/DynamicAiWidget';
 import WidgetWrapper from '../components/WidgetWrapper';
 
-// Types
+// Define a type for our widget instances
 interface WidgetInstance {
   id: number;
   title: string;
-  // keep flexible so any widget component fits
-  component: React.ReactElement<any>;
-  isAi?: boolean;
-  aiConfig?: any;
+  component: React.ReactElement;  // must be an element for WidgetWrapper children
+  isAi: boolean;
+  config?: WidgetConfig;          // Store AI config here
 }
 
-// Catalog entries
-interface WidgetCatalogEntry {
-  title: string;
-  component: React.ReactElement<any>;
-}
-
-// Widget catalog
-const widgetCatalog: Record<string, WidgetCatalogEntry> = {
-  adherenceRate: {
-    title: 'Adherence Rate Over Time',
-    component: <AdherenceRateOverTime />,
-  },
-  activePatients: {
-    title: 'Active Patients by Program',
-    component: <ActivePatientsbyProgram />,
-  },
-  riskDistribution: {
-    title: 'Patient Risk Level Distribution',
-    component: <PatientRiskLevelDistribution />,
-  },
-  readmissions: {
-    title: '30-Day Readmissions by Condition',
-    component: <ReadmissionsbyCondition />,
-  },
-  costAvoidance: {
-    title: 'Average Cost Avoidance',
-    component: <AverageCostAvoidanceperProgram />,
-  },
-};
+// Pre-defined widgets from the catalog
+const widgetCatalog = {
+  adherenceRate: { title: 'Adherence Rate Over Time', component: <AdherenceRateOverTime />, isAi: false },
+  activePatients: { title: 'Active Patients by Program', component: <ActivePatientsByProgram />, isAi: false },
+  riskDistribution: { title: 'Patient Risk Level Distribution', component: <PatientRiskLevelDistribution />, isAi: false },
+  readmissions: { title: '30-Day Readmissions by Condition', component: <ReadmissionsbyCondition />, isAi: false },
+  costAvoidance: { title: 'Average Cost Avoidance', component: <AverageCostAvoidancePerProgram />, isAi: false },
+} as const;
 
 type WidgetKey = keyof typeof widgetCatalog;
 
-// Modal
 const WidgetModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -113,20 +91,30 @@ const CommandCenter: React.FC = () => {
   };
 
   const handleAddFromCatalog = (widgetKey: WidgetKey) => {
-    const { title, component } = widgetCatalog[widgetKey];
-    addWidget({ title, component });
+    addWidget(widgetCatalog[widgetKey]);
     setIsModalOpen(false);
   };
 
-  const handleAiNewWidget = (config: any) => {
-    addWidget({
-      title: config.title,
+  const handleAiNewWidget = (config: WidgetConfig) => {
+    if (widgets.length >= 4) return;
+
+    // Guard: ensure minimal structure from AI so the DynamicAiWidget always mounts
+    const chartType = (config as any)?.chartType ?? 'bar';
+    const dataOptions =
+      (config as any)?.dataOptions ?? { measures: [], dimensions: [], filters: [] };
+    const title =
+      typeof (config as any)?.title === 'string' && (config as any).title
+        ? (config as any).title
+        : 'AI-Generated Widget';
+
+    const newWidget: Omit<WidgetInstance, 'id'> = {
+      title,
       isAi: true,
-      aiConfig: config,
-      component: (
-        <DynamicAiWidget chartType={config.chartType} dataOptions={config.dataOptions} />
-      ),
-    });
+      config,
+      component: <DynamicAiWidget chartType={chartType as any} dataOptions={dataOptions} />,
+    };
+
+    addWidget(newWidget);
   };
 
   const handleRemoveWidget = (idToRemove: number) => {
@@ -135,6 +123,7 @@ const CommandCenter: React.FC = () => {
 
   const handleAiError = (message: string) => {
     console.warn('AI Error:', message);
+    alert(`AI Error: ${message}`);
   };
 
   return (
@@ -165,10 +154,7 @@ const CommandCenter: React.FC = () => {
                 title={widget.title}
                 onRemove={() => handleRemoveWidget(widget.id)}
               >
-                {
-                  // Cast to match WidgetWrapper's child type: ReactElement<{ color?: string }>
-                  (widget.component as React.ReactElement<{ color?: string }>)
-                }
+                {widget.component}
               </WidgetWrapper>
             ))}
 
@@ -188,9 +174,7 @@ const CommandCenter: React.FC = () => {
       </div>
 
       <div className="fixed bottom-6 right-6 z-40">
-        {isChatOpen ? (
-          <GeminiChat onNewWidget={handleAiNewWidget} onError={handleAiError} />
-        ) : (
+        {!isChatOpen && (
           <button
             type="button"
             onClick={() => setIsChatOpen(true)}
@@ -201,6 +185,8 @@ const CommandCenter: React.FC = () => {
           </button>
         )}
       </div>
+
+      {isChatOpen && <GeminiChat onNewWidget={handleAiNewWidget} onError={handleAiError} />}
 
       <WidgetModal
         isOpen={isModalOpen}
@@ -213,6 +199,4 @@ const CommandCenter: React.FC = () => {
 };
 
 export default CommandCenter;
-
-
 
