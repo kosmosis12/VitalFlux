@@ -44,8 +44,8 @@ const App: React.FC = () => {
   return (
     <AppProvider>
       <SisenseContextProvider
-        url="https://aesandbox.sisensepoc.com"
-        token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjg2YmUwYmQxYzYzMTJiZmJhMWI0M2I3IiwiYXBpU2VjcmV0IjoiMjQ1NDAwZGUtYjA1My0zOWJkLTUzY2EtODg2MzhmOGZiYzNkIiwiYWxsb3dlZFRlbmFudHMiOlsiNjg2YmRhMjVlYzBmNzYwMDFjZTQxZTI1Il0sInRlbmFudElkIjoiNjg2YmRhMjVlYzBmNzYwMDFjZTQxZTI1IiwiZXhwIjoxNzU5ODM3MjI2fQ.4UhuzG0t3B5EZ1uwy20ukin0szKJsWZd6Q5esaUDGRc"
+        url="https://ae-sandbox.sisensepoc.com"
+        token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjhkNjVkM2QzNGUxMDdiMzgyNDdmMWJjIiwiYXBpU2VjcmV0IjoiN2JhZGM1MTItZTM0Zi1jNWIzLWJkZDEtYmMxNGY4NWNlZjViIiwiYWxsb3dlZFRlbmFudHMiOlsiNjhjZGIwMTdmM2MwZGE5Y2Q3Yzg1OTljIl0sInRlbmFudElkIjoiNjhjZGIwMTdmM2MwZGE5Y2Q3Yzg1OTljIiwiZXhwIjoxNzYwNjY1NTE3fQ.GVNCG7XlVwfK_IIN1xAT813rswVKLy_XEQROrN9uric"
       >
         <AppContent />
       </SisenseContextProvider>
