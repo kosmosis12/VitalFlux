@@ -1,0 +1,5 @@
+{
+  "name": "VitalFlux Health",
+  "description": "A multi-tenant, configurable analytics module that showcases KPI tiles, time-series trends, cohort/segmentation views, and drill-downs on a de-identified health dataset.",
+  "requestFramePermissions": []
+}
